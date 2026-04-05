@@ -1,5 +1,6 @@
 ﻿using MauiAppTempoAgora.Models;
 using Newtonsoft.Json.Linq;
+using System.Net;
 
 namespace MauiAppTempoAgora.Services
 {
@@ -18,8 +19,8 @@ namespace MauiAppTempoAgora.Services
             {
                 HttpResponseMessage resp = await client.GetAsync(url);
 
-                if (resp.IsSuccessStatusCode) 
-                { 
+                if (resp.IsSuccessStatusCode)
+                {
                     string json = await resp.Content.ReadAsStringAsync();
 
                     var rascunho = JObject.Parse(json);
@@ -28,7 +29,7 @@ namespace MauiAppTempoAgora.Services
                     DateTime sunrise = time.AddSeconds((double)rascunho["sys"]["sunrise"]).ToLocalTime();
                     DateTime sunset = time.AddSeconds((double)rascunho["sys"]["sunset"]).ToLocalTime();
 
-                    t = new ()
+                    t = new()
                     {
                         lon = (double)rascunho["coord"]["lon"],
                         lat = (double)rascunho["coord"]["lat"],
@@ -41,7 +42,21 @@ namespace MauiAppTempoAgora.Services
                         visibility = (int)rascunho["visibility"],
                         main = (string)rascunho["weather"][0]["main"]
                     }; // Fecha objeto do Tempo
-                } //Fecha if do sucesso da resposta
+                }//Fecha if do sucesso da resposta
+                else
+                {
+                    switch (resp.StatusCode) 
+                    { 
+                        case HttpStatusCode.NotFound:
+                            throw new Exception("Cidade não encontrada.");
+                        case HttpStatusCode.Unauthorized:
+                            throw new Exception("Chave de API inválida.");
+                        case HttpStatusCode.RequestTimeout:
+                            throw new Exception("Tempo de requisição esgotado.");
+                        default:
+                            throw new Exception($"Erro na requisição: {resp.ReasonPhrase}");
+                    }
+               
             }// fecha using do HttpClient
 
             return t;
